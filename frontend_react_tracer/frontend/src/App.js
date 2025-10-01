@@ -687,6 +687,17 @@ function App() {
         </motion.button>
       </div>
 
+      <div className="action-buttons" style={{ justifyContent: "flex-end" }}>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="primary-button"
+          onClick={handleDownloadReport}
+        >
+          Download Report (PDF)
+        </motion.button>
+      </div>
+
       <div className="progress-summary">
         <div className="summary-card">
           <h3>Overall Progress</h3>
@@ -892,6 +903,141 @@ function App() {
       </div>
     </motion.div>
   );
+
+  async function handleDownloadReport() {
+    try {
+      const summary = await fetch(`${API_BASE}/progress-summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress }),
+      })
+        .then((r) => r.json())
+        .catch(() => null);
+
+      await ensureJsPDF();
+      // @ts-ignore
+      const { jsPDF } = window.jspdf || {};
+      if (!jsPDF) return;
+
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 40;
+      let y = margin;
+
+      // Header
+      doc.setFontSize(20);
+      doc.text("🌟 My Writing Report", pageWidth / 2, y, { align: "center" });
+      y += 30;
+
+      // Child info
+      const displayName =
+        (childProfile && childProfile.name) || `Child ${activeChildId}`;
+      const displayAvatar = (childProfile && childProfile.avatar) || "🐣";
+      doc.setFontSize(12);
+      doc.text(`Name: ${displayName}`, margin, y);
+      doc.text(`ID: ${activeChildId || "-"}`, margin + 250, y);
+      doc.text(`Avatar: ${displayAvatar}`, margin + 400, y);
+      y += 20;
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, margin, y);
+      y += 20;
+
+      // Summary stats
+      const practicedCount = Object.keys(progress).length;
+      const avgScore = practicedCount
+        ? Math.round(
+            (Object.values(progress).reduce((s, p) => s + (p.score || 0), 0) /
+              practicedCount) *
+              100
+          )
+        : 0;
+      doc.setFontSize(14);
+      doc.text("Summary", margin, y);
+      y += 18;
+      doc.setFontSize(12);
+      doc.text(`Letters practiced: ${practicedCount} / 26`, margin, y);
+      y += 16;
+      doc.text(`Average score: ${avgScore}%`, margin, y);
+      y += 22;
+
+      // Recommendations (from backend if available)
+      const recs = (summary && summary.recommendations) || [];
+      if (recs.length) {
+        doc.setFontSize(14);
+        doc.text("Tips for You", margin, y);
+        y += 16;
+        doc.setFontSize(12);
+        recs.slice(0, 5).forEach((tip) => {
+          const lines = doc.splitTextToSize(`• ${tip}`, pageWidth - margin * 2);
+          if (
+            y + lines.length * 14 >
+            doc.internal.pageSize.getHeight() - margin
+          ) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.text(lines, margin, y);
+          y += lines.length * 14 + 4;
+        });
+        y += 6;
+      }
+
+      // Table of letters
+      doc.setFontSize(14);
+      if (y > doc.internal.pageSize.getHeight() - 140) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text("Your Letters", margin, y);
+      y += 14;
+      doc.setFontSize(12);
+      const headerY = y;
+      doc.text("Letter", margin, headerY);
+      doc.text("Score", margin + 100, headerY);
+      doc.text("Attempts", margin + 170, headerY);
+      y += 12;
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+
+      Object.keys(progress)
+        .sort()
+        .forEach((letter) => {
+          const p = progress[letter] || {};
+          const scorePct = Math.round((p.score || 0) * 100) + "%";
+          const attempts = p.attempts || 0;
+          if (y > doc.internal.pageSize.getHeight() - margin) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.text(letter, margin, y);
+          doc.text(scorePct, margin + 100, y);
+          doc.text(String(attempts), margin + 170, y);
+          y += 16;
+        });
+
+      const fileName = `${displayName.replace(
+        /[^a-z0-9\- ]/gi,
+        "_"
+      )}_Writing_Report.pdf`;
+      doc.save(fileName);
+    } catch (e) {
+      // Fallback: no-op
+    }
+  }
+
+  function ensureJsPDF() {
+    return new Promise((resolve) => {
+      // @ts-ignore
+      if (window.jspdf) return resolve();
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.body.appendChild(script);
+    });
+  }
 
   return (
     <div className="app">
