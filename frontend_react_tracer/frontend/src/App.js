@@ -14,6 +14,7 @@ import LetterTracingCanvas from "./components/LetterTracingCanvas";
 import "./App.css";
 
 function App() {
+  const API_BASE = "http://localhost:5000";
   const [selectedLetter, setSelectedLetter] = useState("A");
   const [currentPage, setCurrentPage] = useState("home"); // home, practice, progress
   const [progress, setProgress] = useState({});
@@ -21,6 +22,10 @@ function App() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [activeChildId, setActiveChildId] = useState("");
+  const [childProfile, setChildProfile] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
 
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
   const letterWords = {
@@ -202,10 +207,31 @@ function App() {
     ],
   };
 
+  // Restore active child and load their progress
   useEffect(() => {
-    const savedProgress = localStorage.getItem("handwritingProgress");
-    if (savedProgress) {
-      setProgress(JSON.parse(savedProgress));
+    const savedChildId = localStorage.getItem("activeChildId") || "";
+    const savedChildProfile = localStorage.getItem("activeChildProfile");
+    if (savedChildId) {
+      setActiveChildId(savedChildId);
+      if (savedChildProfile) {
+        try {
+          setChildProfile(JSON.parse(savedChildProfile));
+        } catch {}
+      }
+      // Load server-stored progress for this child
+      fetch(`${API_BASE}/child/${savedChildId}/progress`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.ok) {
+            setProgress(data.progress || {});
+          }
+        })
+        .catch(() => {
+          const local = localStorage.getItem(
+            `handwritingProgress:${savedChildId}`
+          );
+          if (local) setProgress(JSON.parse(local));
+        });
     }
   }, []);
 
@@ -219,7 +245,18 @@ function App() {
       },
     };
     setProgress(newProgress);
-    localStorage.setItem("handwritingProgress", JSON.stringify(newProgress));
+    if (activeChildId) {
+      // Persist per child (server and local fallback)
+      fetch(`${API_BASE}/child/${activeChildId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress: newProgress }),
+      }).catch(() => {});
+      localStorage.setItem(
+        `handwritingProgress:${activeChildId}`,
+        JSON.stringify(newProgress)
+      );
+    }
 
     // Update total score
     const total = Object.values(newProgress).reduce(
@@ -248,7 +285,14 @@ function App() {
     setProgress({});
     setTotalScore(0);
     setCurrentStreak(0);
-    localStorage.removeItem("handwritingProgress");
+    if (activeChildId) {
+      localStorage.removeItem(`handwritingProgress:${activeChildId}`);
+      fetch(`${API_BASE}/child/${activeChildId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progress: {} }),
+      }).catch(() => {});
+    }
   };
 
   const resetAllData = () => {
@@ -271,12 +315,167 @@ function App() {
     return "#f44336";
   };
 
+  const LoginPage = () => {
+    const [childIdInput, setChildIdInput] = useState("");
+    const [nameInput, setNameInput] = useState("");
+    const [avatar, setAvatar] = useState("🐣");
+    const avatars = ["🐣", "🐯", "🐼", "🐸", "🦄", "🐵", "🐶", "🐱"];
+
+    const onLogin = async () => {
+      setAuthError("");
+      if (!childIdInput.trim()) {
+        setAuthError("Please enter your Kid ID");
+        return;
+      }
+      setIsAuthLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/child/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ childId: childIdInput.trim() }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          setAuthError(data.error || "Could not log in");
+          return;
+        }
+        setActiveChildId(childIdInput.trim());
+        setChildProfile(data.child);
+        localStorage.setItem("activeChildId", childIdInput.trim());
+        localStorage.setItem("activeChildProfile", JSON.stringify(data.child));
+        // Load progress
+        const prog = await fetch(
+          `${API_BASE}/child/${childIdInput.trim()}/progress`
+        ).then((r) => r.json());
+        if (prog && prog.ok) setProgress(prog.progress || {});
+      } catch (e) {
+        setAuthError("Offline? Try again.");
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    const onRegister = async () => {
+      setAuthError("");
+      if (!childIdInput.trim()) {
+        setAuthError("Pick a Kid ID first");
+        return;
+      }
+      setIsAuthLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/child/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            childId: childIdInput.trim(),
+            name: nameInput.trim(),
+            avatar,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          setAuthError(data.error || "Could not register");
+          return;
+        }
+        setActiveChildId(childIdInput.trim());
+        setChildProfile(data.child);
+        localStorage.setItem("activeChildId", childIdInput.trim());
+        localStorage.setItem("activeChildProfile", JSON.stringify(data.child));
+        setProgress({});
+      } catch (e) {
+        setAuthError("Offline? Try again.");
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <h1 className="login-title">👋 Hi, Little Learner!</h1>
+          <p className="login-subtitle">Use your Kid ID to start</p>
+
+          <div className="login-fields">
+            <label className="kid-label">Kid ID</label>
+            <input
+              className="kid-input"
+              placeholder="e.g., 1234"
+              value={childIdInput}
+              onChange={(e) => setChildIdInput(e.target.value)}
+            />
+
+            <label className="kid-label optional">Name (optional)</label>
+            <input
+              className="kid-input"
+              placeholder="Your name"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+            />
+          </div>
+
+          <div className="avatar-section">
+            <span className="kid-label">Pick an avatar</span>
+            <div className="avatar-grid">
+              {avatars.map((a) => (
+                <button
+                  key={a}
+                  className={`avatar-option ${avatar === a ? "selected" : ""}`}
+                  onClick={() => setAvatar(a)}
+                  aria-label={`Avatar ${a}`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {authError && <div className="login-error">{authError}</div>}
+
+          <div className="login-actions">
+            <button
+              className="kid-button primary"
+              onClick={onLogin}
+              disabled={isAuthLoading}
+            >
+              {isAuthLoading ? "..." : "Let me in"}
+            </button>
+            <button
+              className="kid-button secondary"
+              onClick={onRegister}
+              disabled={isAuthLoading}
+            >
+              {isAuthLoading ? "..." : "I'm new"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const HomePage = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="home-page"
     >
+      {childProfile && (
+        <div className="child-profile">
+          <div
+            className="child-avatar"
+            role="img"
+            aria-label="Child avatar"
+            title={childProfile.name || `Child ${activeChildId}`}
+          >
+            {childProfile.avatar || "🐣"}
+          </div>
+          <div className="child-info">
+            <div className="child-name">
+              {childProfile.name || `Child ${activeChildId}`}
+            </div>
+            <div className="child-id">ID: {activeChildId}</div>
+          </div>
+        </div>
+      )}
       <div className="hero-section">
         <h1 className="main-title">🎨 Fun Letter Tracing</h1>
         <p className="subtitle">Learn to write letters with fun and games!</p>
@@ -324,6 +523,19 @@ function App() {
           onClick={resetAllData}
         >
           Reset Progress
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="secondary-button"
+          onClick={() => {
+            setActiveChildId("");
+            setChildProfile(null);
+            localStorage.removeItem("activeChildId");
+            localStorage.removeItem("activeChildProfile");
+          }}
+        >
+          Switch Child
         </motion.button>
       </div>
     </motion.div>
@@ -683,11 +895,15 @@ function App() {
 
   return (
     <div className="app">
-      <AnimatePresence mode="wait">
-        {currentPage === "home" && <HomePage key="home" />}
-        {currentPage === "practice" && <PracticePage key="practice" />}
-        {currentPage === "progress" && <ProgressPage key="progress" />}
-      </AnimatePresence>
+      {!activeChildId ? (
+        <LoginPage />
+      ) : (
+        <AnimatePresence mode="wait">
+          {currentPage === "home" && <HomePage key="home" />}
+          {currentPage === "practice" && <PracticePage key="practice" />}
+          {currentPage === "progress" && <ProgressPage key="progress" />}
+        </AnimatePresence>
+      )}
 
       {showCelebration && (
         <motion.div

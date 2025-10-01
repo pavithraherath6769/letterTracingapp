@@ -984,6 +984,91 @@ def get_letter_difficulty(letter):
     else:
         return "Hard"
 
+# ----------------------
+# Child Profiles (JSON)
+# ----------------------
+
+CHILDREN_STORE = os.path.join(os.path.dirname(__file__), "children.json")
+
+def _ensure_children_store():
+    if not os.path.exists(CHILDREN_STORE):
+        with open(CHILDREN_STORE, "w", encoding="utf-8") as f:
+            json.dump({"children": {}}, f)
+
+def _load_children():
+    _ensure_children_store()
+    with open(CHILDREN_STORE, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {"children": {}}
+
+def _save_children(data):
+    tmp_path = CHILDREN_STORE + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, CHILDREN_STORE)
+
+@app.route("/child/register", methods=["POST"])
+def child_register():
+    payload = request.get_json(silent=True) or {}
+    child_id = str(payload.get("childId", "")).strip()
+    name = (payload.get("name") or "").strip()
+    avatar = (payload.get("avatar") or "").strip()
+    if not child_id:
+        return jsonify({"error": "childId is required"}), 400
+
+    data = _load_children()
+    children = data.get("children", {})
+    if child_id not in children:
+        children[child_id] = {
+            "name": name or f"Child {child_id}",
+            "avatar": avatar,
+            "progress": {}
+        }
+        data["children"] = children
+        _save_children(data)
+
+    return jsonify({"ok": True, "child": children[child_id]})
+
+@app.route("/child/login", methods=["POST"])
+def child_login():
+    payload = request.get_json(silent=True) or {}
+    child_id = str(payload.get("childId", "")).strip()
+    if not child_id:
+        return jsonify({"error": "childId is required"}), 400
+
+    data = _load_children()
+    child = data.get("children", {}).get(child_id)
+    if not child:
+        return jsonify({"error": "Child not found"}), 404
+    return jsonify({"ok": True, "child": child})
+
+@app.route("/child/<child_id>/progress", methods=["GET"])
+def get_child_progress(child_id):
+    child_id = str(child_id).strip()
+    data = _load_children()
+    child = data.get("children", {}).get(child_id)
+    if not child:
+        return jsonify({"error": "Child not found"}), 404
+    return jsonify({"ok": True, "progress": child.get("progress", {})})
+
+@app.route("/child/<child_id>/progress", methods=["POST"])
+def save_child_progress(child_id):
+    child_id = str(child_id).strip()
+    payload = request.get_json(silent=True) or {}
+    progress = payload.get("progress") or {}
+    if not isinstance(progress, dict):
+        return jsonify({"error": "progress must be an object"}), 400
+
+    data = _load_children()
+    if child_id not in data.get("children", {}):
+        return jsonify({"error": "Child not found"}), 404
+
+    data["children"][child_id]["progress"] = progress
+    _save_children(data)
+    return jsonify({"ok": True})
+
 @app.route("/progress-summary", methods=["POST"])
 def get_progress_summary():
     """Analyze overall progress and provide recommendations"""
