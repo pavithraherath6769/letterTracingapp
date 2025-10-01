@@ -516,6 +516,62 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+/* Welcome Overlay */
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.welcome-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.welcome-animal {
+  font-size: 3rem;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.15));
+  margin-bottom: 8px;
+}
+
+.welcome-title {
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.welcome-button {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.welcome-button.primary {
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+}
+
+.welcome-button.secondary {
+  background: #eef2ff;
+  color: #334155;
+}
+
 /* Canvas Styles */
 .canvas-container {
   display: flex;

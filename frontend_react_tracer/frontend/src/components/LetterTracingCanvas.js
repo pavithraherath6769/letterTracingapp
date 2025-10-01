@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RotateCcw,
@@ -56,9 +57,22 @@ const LetterTracingCanvas = ({ letter, onScoreUpdate }) => {
       setTimeout(() => {
         console.log("Forcing re-render check - feedback should be visible now");
         setRenderKey((prev) => prev + 1);
-        // Show alert to confirm feedback was set
-        alert(
-          `Feedback set for letter ${currentLetter}: ${newFeedback.result} - ${newFeedback.message}`
+        const category = newFeedback?.category || "good";
+        const emoji =
+          category === "excellent"
+            ? "🌟"
+            : category === "good"
+            ? "👍"
+            : category === "fair"
+            ? "💪"
+            : "🔄";
+        toast.success(
+          `${emoji} Letter ${currentLetter}: ${
+            newFeedback?.message || "Great effort!"
+          }`,
+          {
+            duration: 2500,
+          }
         );
       }, 100);
     },
@@ -633,69 +647,11 @@ const LetterTracingCanvas = ({ letter, onScoreUpdate }) => {
             >
               {isAnalyzing ? "Analyzing..." : "Analyze"}
             </motion.button>
-
-            {/* Debug button - remove after testing */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="control-button"
-              onClick={() => {
-                const testFeedback = {
-                  result: "Test",
-                  message: "This is a test feedback message!",
-                  score: 0.7,
-                  category: "good",
-                  tip: "This is a test tip for letter " + letter,
-                  analysis: {
-                    smoothness: 0.8,
-                    consistency: 0.7,
-                    spacing: 0.6,
-                  },
-                  improvements: [
-                    "Test improvement tip 1",
-                    "Test improvement tip 2",
-                  ],
-                };
-                console.log("Setting test feedback:", testFeedback);
-                updateFeedback(testFeedback);
-                console.log("Test feedback set, render key incremented");
-              }}
-              style={{ backgroundColor: "#9c27b0" }}
-            >
-              Test Feedback
-            </motion.button>
-
-            {/* Debug state button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="control-button"
-              onClick={() => {
-                console.log("=== CURRENT STATE DEBUG ===");
-                console.log("feedback:", feedback);
-                console.log("analysis:", analysis);
-                console.log("improvements:", improvements);
-                console.log("renderKey:", renderKey);
-                console.log("currentLetter:", currentLetter);
-                console.log("feedbackForLetter:", feedbackForLetter);
-                console.log("==========================");
-              }}
-              style={{ backgroundColor: "#ff5722" }}
-            >
-              Debug State
-            </motion.button>
           </div>
         </div>
 
         {/* Feedback Section - Right Side */}
-        <div
-          className="feedback-sidebar"
-          style={{ border: "2px solid red", minHeight: "400px" }}
-        >
-          <div style={{ padding: "10px", background: "#f0f0f0" }}>
-            Debug: Feedback state = {feedback ? "SET" : "NULL"} | Render key:{" "}
-            {renderKey} | Feedback type: {feedback ? typeof feedback : "N/A"}
-          </div>
+        <div className="feedback-sidebar" style={{ minHeight: "400px" }}>
           {feedback && feedback.result ? (
             <motion.div
               key={renderKey} // Force re-render when feedback changes

@@ -5,9 +5,14 @@
       "avatar": "🐣",
       "progress": {
         "A": {
-          "score": 0.9084971984648315,
+          "score": 0.930695145776762,
+          "attempts": 16,
+          "lastPracticed": "2025-10-01T06:40:23.586Z"
+        },
+        "B": {
+          "score": 0.16000000000000003,
           "attempts": 2,
-          "lastPracticed": "2025-10-01T05:23:43.323Z"
+          "lastPracticed": "2025-10-01T07:02:08.106Z"
         }
       }
     },

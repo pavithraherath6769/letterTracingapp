@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
@@ -26,6 +27,7 @@ function App() {
   const [childProfile, setChildProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
   const letterWords = {
@@ -341,6 +343,7 @@ function App() {
         }
         setActiveChildId(childIdInput.trim());
         setChildProfile(data.child);
+        setShowWelcome(true);
         localStorage.setItem("activeChildId", childIdInput.trim());
         localStorage.setItem("activeChildProfile", JSON.stringify(data.child));
         // Load progress
@@ -379,6 +382,7 @@ function App() {
         }
         setActiveChildId(childIdInput.trim());
         setChildProfile(data.child);
+        setShowWelcome(true);
         localStorage.setItem("activeChildId", childIdInput.trim());
         localStorage.setItem("activeChildProfile", JSON.stringify(data.child));
         setProgress({});
@@ -1061,6 +1065,59 @@ function App() {
           🎉 Great job! 🎉
         </motion.div>
       )}
+
+      {/* Global toaster for notifications */}
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          style: { borderRadius: 14, fontWeight: 700 },
+          success: { iconTheme: { primary: "#4ecdc4", secondary: "#fff" } },
+        }}
+      />
+
+      <AnimatePresence>
+        {showWelcome && activeChildId && (
+          <motion.div
+            className="welcome-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="welcome-card"
+              initial={{ scale: 0.8, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.8, y: 20, opacity: 0 }}
+            >
+              <div className="welcome-animal" role="img" aria-label="Greeter">
+                {(childProfile && childProfile.avatar) || "🐼"}
+              </div>
+              <h3 className="welcome-title">
+                {`Hi ${
+                  childProfile?.name || "Friend"
+                }! Ready to write letters?`}
+              </h3>
+              <div className="welcome-actions">
+                <button
+                  className="welcome-button primary"
+                  onClick={() => {
+                    setShowWelcome(false);
+                    setCurrentPage("practice");
+                  }}
+                >
+                  Let's Write!
+                </button>
+                <button
+                  className="welcome-button secondary"
+                  onClick={() => setShowWelcome(false)}
+                >
+                  Not now
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
