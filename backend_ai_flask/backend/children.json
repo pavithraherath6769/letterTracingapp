@@ -6,19 +6,24 @@
       "progress": {
         "A": {
           "score": 0.930695145776762,
-          "attempts": 16,
-          "lastPracticed": "2025-10-01T06:40:23.586Z"
+          "attempts": 20,
+          "lastPracticed": "2025-10-01T17:39:50.285Z"
         },
         "B": {
-          "score": 0.16000000000000003,
           "attempts": 2,
-          "lastPracticed": "2025-10-01T07:02:08.106Z"
+          "lastPracticed": "2025-10-01T07:02:08.106Z",
+          "score": 0.16000000000000003
         }
       }
     },
     "1234": {
       "name": "Child 1234",
       "avatar": "🐯",
+      "progress": {}
+    },
+    "51": {
+      "name": "hashini",
+      "avatar": "🦄",
       "progress": {}
     }
   }

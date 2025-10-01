@@ -18,6 +18,7 @@ A delightful, child-friendly handwriting learning application designed specifica
 - **Voice Guidance**: Audio pronunciation of letters and encouraging feedback
 - **Progress Tracking**: Visual progress indicators and achievement system
 - **Letter Examples**: Each letter comes with example words (A for Apple, B for Ball, etc.)
+- **Picture Next to Word**: A child-friendly picture/emoji appears alongside the word to reinforce recognition
 
 ### 🎮 **Engaging Experience**
 
@@ -25,6 +26,8 @@ A delightful, child-friendly handwriting learning application designed specifica
 - **Progress Dashboard**: Visual statistics and achievement tracking
 - **Undo/Redo**: Easy correction of mistakes
 - **Clear Canvas**: Quick reset for multiple practice attempts
+- **Welcome Popup**: A cute greeter welcomes the child after login with a single tap to start
+- **Friendly Toasts**: Non-blocking on-screen notifications for feedback (🌟/👍/💪/🔄)
 
 ### 🤖 **AI-Powered Analysis**
 
@@ -32,6 +35,17 @@ A delightful, child-friendly handwriting learning application designed specifica
 - **Encouraging Messages**: Personalized, positive feedback based on performance
 - **Educational Tips**: Step-by-step instructions for each letter
 - **Score Tracking**: Percentage-based scoring system
+
+### 👦 **Kid-Friendly Login & Profiles**
+
+- **Simple Kid ID Login**: No passwords—enter an ID to login; quick register if new
+- **Avatars & Optional Name**: Build identity with emoji avatar and name
+- **Per-Child Progress**: Each child’s scores/attempts saved separately
+- **Switch Child**: One-click switch on Home
+
+### 🧾 **PDF Reports**
+
+- **Download Report**: One-tap PDF with name, ID, avatar, summary stats, tips, and letter table
 
 ---
 
@@ -162,6 +176,7 @@ handwriting-assist/
 │   └── backend/
 │       ├── app.py             # Enhanced API with educational features
 │       ├── train_model.py     # AI model training with feature extraction
+│       ├── children.json      # JSON store for kid profiles and progress (auto-created)
 │       └── model/
 │           ├── stroke_model.h5 # Trained neural network
 │           └── scaler.pkl     # Feature normalization scaler
@@ -199,10 +214,16 @@ handwriting-assist/
    ```
 
 4. **Start the backend server:**
+
    ```bash
    python app.py
    ```
+
    The server will run at `http://localhost:5000`
+
+5. **Children store (auto-created):**
+
+   The backend maintains `children.json` beside `app.py` for kid profiles and per-child progress.
 
 ### 🖥️ Frontend Setup
 
@@ -217,6 +238,8 @@ handwriting-assist/
    ```bash
    npm install
    ```
+
+   This includes `react-hot-toast` for friendly notification toasts.
 
 3. **Start the React development server:**
    ```bash
@@ -244,12 +267,22 @@ handwriting-assist/
 - View detailed analysis of your writing
 - Get personalized improvement tips
 
+### 👦 **Login & Profile**
+
+- Enter Kid ID to login or register (optional name + avatar)
+- Welcome popup greets the child; tap “Let’s Write!” to begin
+- Switch child anytime from Home
+
 ### 📊 **Progress Tracking**
 
 - View detailed progress for each letter
 - See scores, attempts, and last practice dates
 - Track overall completion percentage
 - Reset progress if needed
+
+### 🧾 **PDF Report**
+
+- On Progress page, click “Download Report (PDF)” to generate a child-friendly progress PDF
 
 ---
 
@@ -305,6 +338,55 @@ Get educational information about a specific letter.
 ### POST `/progress-summary`
 
 Analyze overall progress and provide recommendations.
+
+### Child Profiles & Progress
+
+#### POST `/child/register`
+
+Create or return a child profile.
+
+Request:
+
+```json
+{ "childId": "1234", "name": "Ava", "avatar": "🐯" }
+```
+
+Response:
+
+```json
+{ "ok": true, "child": { "name": "Ava", "avatar": "🐯", "progress": {} } }
+```
+
+#### POST `/child/login`
+
+Login with an existing Kid ID.
+
+Request:
+
+```json
+{ "childId": "1234" }
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "child": {
+    "name": "Ava",
+    "avatar": "🐯",
+    "progress": { "A": { "score": 0.8 } }
+  }
+}
+```
+
+#### GET `/child/<childId>/progress`
+
+Return per-letter progress for a child.
+
+#### POST `/child/<childId>/progress`
+
+Persist per-letter progress for a child.
 
 ---
 
@@ -369,6 +451,7 @@ The app is fully responsive and optimized for:
 - **React 18**: Modern UI framework
 - **Framer Motion**: Smooth animations
 - **Lucide React**: Beautiful icons
+- **react-hot-toast**: Friendly non-blocking notifications
 - **HTML5 Canvas**: Interactive drawing surface
 
 ### **Backend**
@@ -377,6 +460,7 @@ The app is fully responsive and optimized for:
 - **TensorFlow/Keras**: AI model for handwriting analysis
 - **Flask-CORS**: Cross-origin resource sharing
 - **Scikit-learn**: Feature scaling and preprocessing
+- **JSON Store**: Simple child profile and progress persistence
 
 ### **AI/ML**
 

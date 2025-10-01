@@ -14,6 +14,8 @@
 10. [Future Improvements](#future-improvements)
 11. [Performance Analysis](#performance-analysis)
 12. [Security Considerations](#security-considerations)
+13. [Child Login & Profiles](#child-login--profiles)
+14. [PDF Reports](#pdf-reports)
 
 ---
 
@@ -90,6 +92,10 @@ App.js (Main Container)
 - `POST /analyze` - Analyze handwriting strokes
 - `GET /letter-info/<letter>` - Get letter-specific information
 - `POST /progress-summary` - Generate progress reports
+- `POST /child/register` - Create or return a kid profile (JSON store)
+- `POST /child/login` - Login to an existing profile by ID
+- `GET /child/<id>/progress` - Get per-child progress
+- `POST /child/<id>/progress` - Save per-child progress
 - `GET /health` - Health check endpoint
 
 #### 2. Handwriting Analyzer (`train_model.py`)
@@ -523,6 +529,9 @@ const [totalScore, setTotalScore] = useState(0);
 - Progress tracking and persistence
 - Letter selection interface
 - Achievement system
+- Kid-friendly login with avatar picker and welcome popup
+- Global toast notifications via `react-hot-toast`
+- PDF report generation via `jsPDF` (CDN UMD)
 
 #### 2. Letter Tracing Canvas (`LetterTracingCanvas.js`)
 
@@ -532,6 +541,7 @@ const [totalScore, setTotalScore] = useState(0);
 - Real-time stroke capture
 - State management for feedback
 - API integration
+- Non-blocking success toasts (category-based emoji + message)
 
 **State Management**:
 
@@ -1165,6 +1175,21 @@ def get_letter_info(letter):
 ```
 
 #### 3. Progress Summary Endpoint
+
+#### 4. Child Profile Endpoints
+
+```http
+POST /child/register
+Body: { "childId": "1234", "name": "Ava", "avatar": "🐯" }
+
+POST /child/login
+Body: { "childId": "1234" }
+
+GET /child/1234/progress
+
+POST /child/1234/progress
+Body: { "progress": { "A": { "score": 0.82, "attempts": 3, "lastPracticed": "2025-10-01T12:00:00Z" } } }
+```
 
 **Endpoint**: `POST /progress-summary`
 **Purpose**: Generate comprehensive progress reports
@@ -2533,6 +2558,66 @@ App
    - Smooth animations
    - Audio feedback
    - Encouraging messages
+
+- Cute welcome popup after login
+- Picture emoji next to letter word
+- Toast notifications (non-blocking)
+- Simple Kid ID login with avatars
+- Per-child progress storage and switch user
+- One-tap PDF report from Progress page
+
+---
+
+## Child Login & Profiles
+
+### Overview
+
+- Children login with a short ID—no passwords.
+- Optional name + avatar personalize the experience.
+- Active child stored locally; progress loaded on launch.
+- Per-child progress persisted on backend JSON store (`children.json`).
+
+### Data Model
+
+```json
+{
+  "children": {
+    "1234": {
+      "name": "Ava",
+      "avatar": "🐯",
+      "progress": {
+        "A": {
+          "score": 0.82,
+          "attempts": 3,
+          "lastPracticed": "2025-10-01T12:00:00Z"
+        }
+      }
+    }
+  }
+}
+```
+
+### UX Details
+
+- Single input + two buttons: “Let me in” and “I’m new”.
+- Focused error messages; large touch targets; simple flow.
+- Switch Child action on Home clears active child.
+
+---
+
+## PDF Reports
+
+### Contents
+
+- Child name, ID, avatar, date
+- Summary: letters practiced, average score
+- Recommendations from `POST /progress-summary`
+- Letter table: score and attempts per letter
+
+### Implementation
+
+- Frontend: `jsPDF` UMD via CDN; generated in browser.
+- Filename: `<Name>_Writing_Report.pdf` (sanitized).
 
 ### Technical Features
 
