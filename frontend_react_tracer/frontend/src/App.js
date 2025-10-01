@@ -52,6 +52,36 @@ function App() {
     Z: "Zebra",
   };
 
+  // Visuals (emoji) for each letter's example word to aid recognition
+  const letterImages = {
+    A: "🍎",
+    B: "⚽",
+    C: "🐱",
+    D: "🐶",
+    E: "🐘",
+    F: "🐟",
+    G: "🦒",
+    H: "🏠",
+    I: "🧊",
+    J: "🏃",
+    K: "🪁",
+    L: "🦁",
+    M: "🌙",
+    N: "🪺",
+    O: "🍊",
+    P: "🐷",
+    Q: "👑",
+    R: "🌈",
+    S: "☀️",
+    T: "🌳",
+    U: "☂️",
+    V: "🎻",
+    W: "💧",
+    X: "🎼",
+    Y: "🟡",
+    Z: "🦓",
+  };
+
   // Detailed step-by-step instructions for each letter
   const letterInstructions = {
     A: [
@@ -326,6 +356,14 @@ function App() {
       </div>
 
       <div className="letter-info">
+        <div
+          className="letter-visual"
+          role="img"
+          aria-label={`${letterWords[selectedLetter]} illustration`}
+          title={letterWords[selectedLetter]}
+        >
+          {letterImages[selectedLetter]}
+        </div>
         <div className="letter-display">
           <h1 className="current-letter">{selectedLetter}</h1>
           <p className="letter-word">{letterWords[selectedLetter]}</p>
